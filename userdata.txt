@@ -1,2 +1,7 @@
-aryankhanna2004@gmail.com,password
-ak,12
+aryankhanna2004@gmail.com,hi,buyer
+ak23,23,seller
+ak,password,seller
+ak12,12,seller
+lol,lol,buyer
+ak@gmail.com,123,seller
+lol123,lol123,buyer

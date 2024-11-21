@@ -1,0 +1,3 @@
+Natural Science Books,lol,17.60,2024-11-21T10:41:33.021903,Processed
+Natural Science Books,lol123,87.20,2024-11-21T10:43:50.228029,Processed
+Natural Science Books,lol123,8.80,2024-11-21T10:43:50.228494,Processed

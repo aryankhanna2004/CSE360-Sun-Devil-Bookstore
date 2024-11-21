@@ -1,4 +1,2 @@
-aryankhanna2004@gmail.com,My dad 101,my dad,old,romance,20.0
-aryankhanna2004@gmail.com,abcd,abcd,old,roamnce,20.0
-aryankhanna2004@gmail.com,Natural Science Books,Used Like New,90.0,72.0
-ak,Natural Science Books,Used Like New,90.0,72.0
+ak12,haha,Natural Science Books,Moderately Used,199.0,119.39999999999999
+ak@gmail.com,yapping,Computer Books,Moderately Used,77.0,46.199999999999996
