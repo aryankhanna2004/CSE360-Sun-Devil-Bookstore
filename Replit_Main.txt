@@ -1,0 +1,1047 @@
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import java.io.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.text.Text;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main extends Application {
+
+    private VBox mainLayout;
+    private Stage primaryStage;
+    private Scene scene;
+    private LoginPage loginPage;
+    private SellerView sellerView;
+    private BuyerView buyerView;
+
+    @Override
+    public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        primaryStage.setTitle("Sun Devil Bookstore");
+
+        mainLayout = new VBox();
+        mainLayout.setPadding(new Insets(20));
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setStyle("-fx-background-color: #F7B05B;");
+
+        scene = new Scene(mainLayout, 800, 600);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+        loginPage = new LoginPage(this, primaryStage);
+        sellerView = new SellerView(this, primaryStage);
+        buyerView = new BuyerView(this, primaryStage);
+
+        showLoginPage();
+    }
+
+    public void showLoginPage() {
+        VBox loginLayout = loginPage.getLoginPage();
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(loginLayout);
+    }
+
+    public void showSignUpPage() {
+        VBox signUpLayout = loginPage.getSignUpPage();
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(signUpLayout);
+    }
+
+    public void showSellerMenu(String sellerID) {
+        VBox sellerMenuLayout = sellerView.getSellerMenu(sellerID);
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(sellerMenuLayout);
+    }
+
+    public void showSellBookPage(String sellerID) {
+        VBox sellBookLayout = sellerView.getSellBookPage(sellerID);
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(sellBookLayout);
+    }
+
+    public void showManageListingsPage(String sellerID) {
+        VBox manageListingsLayout = sellerView.getManageListingsPage(sellerID);
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(manageListingsLayout);
+    }
+
+    public void showSalesHistoryPage(String sellerID) {
+        VBox salesHistoryLayout = sellerView.getSalesHistoryPage(sellerID);
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(salesHistoryLayout);
+    }
+
+    public HBox createNavigationButtons(String currentScreen, String sellerID) {
+        HBox navigationBox = new HBox(10);
+        navigationBox.setAlignment(Pos.CENTER);
+
+        if (!currentScreen.equals("login")) {
+            Button backButton = new Button("Back");
+            backButton.setOnAction(e -> {
+                switch (currentScreen) {
+                    case "signup":
+                        showLoginPage();
+                        break;
+                    case "sellBook":
+                    case "manageListings":
+                    case "salesHistory":
+                        showSellerMenu(sellerID);
+                        break;
+                    default:
+                        break;
+                }
+            });
+
+            navigationBox.getChildren().add(backButton);
+
+            if (!currentScreen.equals("signup")) {
+                Button logoutButton = new Button("Logout");
+                logoutButton.setOnAction(e -> showLoginPage());
+                navigationBox.getChildren().add(logoutButton);
+            }
+        }
+
+        return navigationBox;
+    }
+
+    public void showBuyerMenu(String buyerID) {
+        VBox buyerMenuLayout = buyerView.getBuyerMenu(buyerID);
+        mainLayout.getChildren().clear();
+        mainLayout.getChildren().add(buyerMenuLayout);
+    }
+
+    public VBox getMainLayout() {
+        return mainLayout;
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
+
+
+// LoginPage.java
+class LoginPage {
+
+    private VBox layout;
+    private Stage primaryStage;
+    private Main mainApp;
+    private final String DATA_FILE = "userdata.txt";
+
+    public LoginPage(Main mainApp, Stage primaryStage) {
+        this.mainApp = mainApp;
+        this.primaryStage = primaryStage;
+    }
+
+    public VBox getLoginPage() {
+        layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Login");
+
+        // Logo
+        ImageView logoImageView = new ImageView();
+        try {
+            //String imagePath = "file:/Users/abc/eclipse-workspace-2/javafxproject/src/application/bookstore_logo.png";
+            String imagePath = "file:bookstore_logo.png";
+            Image logoImage = new Image(imagePath);
+            logoImageView.setImage(logoImage);
+            logoImageView.setFitWidth(200);
+            logoImageView.setPreserveRatio(true);
+        } catch (Exception e) {
+            System.out.println("Error loading image: " + e.getMessage());
+        }
+
+        // Email and Password fields
+        Label emailLabel = new Label("Email address:");
+        TextField emailField = new TextField();
+        emailField.setPrefWidth(300);
+
+        Label passwordLabel = new Label("Password:");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPrefWidth(260);
+
+        TextField passwordFieldVisible = new TextField();
+        passwordFieldVisible.setPrefWidth(260);
+        passwordFieldVisible.setManaged(false);
+        passwordFieldVisible.setVisible(false);
+
+        ToggleButton viewPasswordButton = new ToggleButton("Show");
+        viewPasswordButton.setOnAction(e -> {
+            if (viewPasswordButton.isSelected()) {
+                passwordFieldVisible.setText(passwordField.getText());
+                passwordFieldVisible.setVisible(true);
+                passwordFieldVisible.setManaged(true);
+                passwordField.setVisible(false);
+                passwordField.setManaged(false);
+                viewPasswordButton.setText("Hide");
+            } else {
+                passwordField.setText(passwordFieldVisible.getText());
+                passwordField.setVisible(true);
+                passwordField.setManaged(true);
+                passwordFieldVisible.setVisible(false);
+                passwordFieldVisible.setManaged(false);
+                viewPasswordButton.setText("Show");
+            }
+        });
+
+        HBox passwordBox = new HBox(5, passwordField, passwordFieldVisible, viewPasswordButton);
+        passwordBox.setAlignment(Pos.CENTER);
+
+        Text errorMessage = new Text();
+        errorMessage.setFill(Color.RED);
+
+        Button loginButton = new Button("Log in");
+        loginButton.setPrefWidth(300);
+        loginButton.setOnAction(e -> {
+            String email = emailField.getText();
+            String password = passwordField.isVisible() ? passwordField.getText() : passwordFieldVisible.getText();
+            String role = authenticateUser(email, password);
+            if (role != null) {
+                errorMessage.setText("Login successful!");
+                errorMessage.setFill(Color.GREEN);
+                if ("seller".equalsIgnoreCase(role)) {
+                    mainApp.showSellerMenu(email);
+                } else if ("buyer".equalsIgnoreCase(role)) {
+                    mainApp.showBuyerMenu(email);
+                } else {
+                    errorMessage.setText("Unknown user role.");
+                    errorMessage.setFill(Color.RED);
+                }
+            } else {
+                errorMessage.setText("Invalid email or password.");
+                errorMessage.setFill(Color.RED);
+            }
+        });
+
+        Label forgotPasswordLabel = new Label("Forgot password?");
+        forgotPasswordLabel.setStyle("-fx-underline: true; -fx-text-fill: blue;");
+
+        Button signUpButton = new Button("Sign Up");
+        signUpButton.setPrefWidth(300);
+        signUpButton.setOnAction(e -> mainApp.showSignUpPage());
+
+        layout.getChildren().addAll(
+                logoImageView,
+                emailLabel, emailField,
+                passwordLabel, passwordBox,
+                errorMessage,
+                forgotPasswordLabel,
+                loginButton,
+                signUpButton
+        );
+
+        return layout;
+    }
+
+    public VBox getSignUpPage() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Sign Up");
+
+        Label emailLabel = new Label("Email address:");
+        TextField emailField = new TextField();
+        emailField.setPrefWidth(300);
+
+        Label passwordLabel = new Label("Password:");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPrefWidth(300);
+
+        Label roleLabel = new Label("Sign up as:");
+        ToggleGroup roleGroup = new ToggleGroup();
+        RadioButton buyerRadioButton = new RadioButton("Buyer");
+        buyerRadioButton.setToggleGroup(roleGroup);
+        buyerRadioButton.setSelected(true);
+        RadioButton sellerRadioButton = new RadioButton("Seller");
+        sellerRadioButton.setToggleGroup(roleGroup);
+        HBox roleBox = new HBox(10, buyerRadioButton, sellerRadioButton);
+        roleBox.setAlignment(Pos.CENTER);
+
+        Button signUpButton = new Button("Sign Up");
+        signUpButton.setPrefWidth(300);
+        signUpButton.setOnAction(e -> {
+            String email = emailField.getText();
+            String password = passwordField.getText();
+            String role = buyerRadioButton.isSelected() ? "buyer" : "seller";
+            if (saveUserData(email, password, role)) {
+                System.out.println("User registered successfully as " + role + "!");
+                mainApp.showLoginPage();
+            } else {
+                // Handle user registration failure (e.g., email already exists)
+                System.out.println("User registration failed.");
+            }
+        });
+
+        // Add navigation buttons
+        HBox navigationBox = mainApp.createNavigationButtons("signup", null);
+
+        layout.getChildren().addAll(
+                emailLabel, emailField,
+                passwordLabel, passwordField,
+                roleLabel, roleBox,
+                signUpButton,
+                navigationBox
+        );
+
+        return layout;
+    }
+
+
+    private String authenticateUser(String email, String password) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(DATA_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 3 && parts[0].equals(email) && parts[1].equals(password)) {
+                    String role = parts[2].trim();
+                    return role;
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading user data: " + e.getMessage());
+        }
+        return null;
+    }
+
+
+    private boolean saveUserData(String email, String password, String role) {
+        // Check if the user already exists
+        try (BufferedReader reader = new BufferedReader(new FileReader(DATA_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 1 && parts[0].equals(email)) {
+                    // User already exists
+                    return false;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // File does not exist yet; it will be created
+        } catch (IOException e) {
+            System.out.println("Error reading user data: " + e.getMessage());
+            return false;
+        }
+
+        // Save the new user
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(DATA_FILE, true))) {
+            writer.write(email + "," + password + "," + role);
+            writer.newLine();
+            return true;
+        } catch (IOException e) {
+            System.out.println("Error saving user data: " + e.getMessage());
+            return false;
+        }
+    }
+}
+
+//BuyerView.java:
+class BuyerView {
+
+    private Main mainApp;
+    private Stage primaryStage;
+    private ObservableList<Book> allBooks;
+    private ObservableList<Book> filteredBooks;
+    private ObservableList<Book> cart;
+
+    private final String BOOK_LISTINGS_FILE = "booklistings.txt";
+    private final String TRANSACTION_FILE = "transactions.txt";
+
+    public BuyerView(Main mainApp, Stage primaryStage) {
+        this.mainApp = mainApp;
+        this.primaryStage = primaryStage;
+        this.allBooks = FXCollections.observableArrayList();
+        this.filteredBooks = FXCollections.observableArrayList();
+        this.cart = FXCollections.observableArrayList();
+
+    }
+
+    public void refreshBooks() {
+        allBooks.clear();
+        filteredBooks.clear();
+        cart.clear();
+        loadBooks();
+        // After loading, apply any existing filters or defaults
+    }
+
+
+    public VBox getBuyerMenu(String buyerID) {
+        // Refresh books each time the Buyer View is opened
+        refreshBooks();
+
+        VBox layout = new VBox(15);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.TOP_CENTER);
+        layout.setStyle("-fx-background-color: #AED581;");
+
+        // Welcome Label
+        Label welcomeLabel = new Label("Welcome, Buyer: " + buyerID);
+        welcomeLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        // Filters
+        HBox filtersBox = new HBox(10);
+        filtersBox.setAlignment(Pos.CENTER);
+
+        // Category Filter
+        ComboBox<String> categoryComboBox = new ComboBox<>();
+        categoryComboBox.getItems().addAll(
+                "All Categories",
+                "Natural Science Books",
+                "Computer Books",
+                "Math Books",
+                "English Language Books",
+                "Other Books (e.g., Novels, Sci-Fi, Arts)"
+        );
+        categoryComboBox.setValue("All Categories");
+
+        // Condition Filter
+        ComboBox<String> conditionComboBox = new ComboBox<>();
+        conditionComboBox.getItems().addAll(
+                "All Conditions",
+                "Used Like New",
+                "Moderately Used",
+                "Heavily Used"
+        );
+        conditionComboBox.setValue("All Conditions");
+
+        filtersBox.getChildren().addAll(
+                new Label("Category:"), categoryComboBox,
+                new Label("Condition:"), conditionComboBox
+        );
+
+        // Books Table
+        TableView<Book> booksTable = new TableView<>();
+        booksTable.setItems(filteredBooks);
+        booksTable.setPrefHeight(300);
+
+        TableColumn<Book, String> sellerCol = new TableColumn<>("Seller ID");
+        sellerCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getSellerID()));
+
+        TableColumn<Book, String> titleCol = new TableColumn<>("Title"); // New Column for Title
+        titleCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
+        titleCol.setPrefWidth(200); // Adjust width as needed
+
+        TableColumn<Book, String> categoryCol = new TableColumn<>("Category");
+        categoryCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getCategory()));
+        categoryCol.setPrefWidth(150);
+
+        TableColumn<Book, String> conditionCol = new TableColumn<>("Condition");
+        conditionCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getCondition()));
+        conditionCol.setPrefWidth(150);
+
+        TableColumn<Book, String> originalPriceCol = new TableColumn<>("Original Price ($)");
+        originalPriceCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(String.format("%.2f", data.getValue().getOriginalPrice())));
+        originalPriceCol.setPrefWidth(120);
+
+        TableColumn<Book, String> buyingPriceCol = new TableColumn<>("Buying Price ($)");
+        buyingPriceCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(String.format("%.2f", data.getValue().getBuyingPrice())));
+        buyingPriceCol.setPrefWidth(120);
+
+        booksTable.getColumns().addAll(sellerCol, titleCol, categoryCol, conditionCol, originalPriceCol, buyingPriceCol);
+
+        // Add to Cart Button
+        Button addToCartButton = new Button("Add to Cart");
+        addToCartButton.setOnAction(e -> {
+            Book selectedBook = booksTable.getSelectionModel().getSelectedItem();
+            if (selectedBook != null) {
+                if (!cart.contains(selectedBook)) { // Prevent duplicates
+                    cart.add(selectedBook);
+                    showAlert(Alert.AlertType.INFORMATION, "Cart Update", "Book added to cart.");
+                } else {
+                    showAlert(Alert.AlertType.WARNING, "Duplicate Entry", "This book is already in your cart.");
+                }
+            } else {
+                showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a book to add to cart.");
+            }
+        });
+
+        // Cart ListView
+        ListView<Book> cartListView = new ListView<>(cart);
+        cartListView.setPrefHeight(150);
+        cartListView.setCellFactory(param -> new ListCell<Book>() {
+            @Override
+            protected void updateItem(Book item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null || item.getTitle() == null) {
+                    setText(null);
+                } else {
+                    setText("Title: " + item.getTitle() + " - $" + String.format("%.2f", item.getBuyingPrice()));
+                }
+            }
+        });
+
+        // Buy Now Button
+        Button buyNowButton = new Button("Buy Now");
+        buyNowButton.setOnAction(e -> {
+            if (!cart.isEmpty()) {
+                processPurchase(FXCollections.observableArrayList(cart), buyerID); 
+                cart.clear();
+                showAlert(Alert.AlertType.INFORMATION, "Purchase Successful", "Your purchase has been processed.");
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Empty Cart", "Your cart is empty.");
+            }
+        });
+
+        // Logout Button
+        Button logoutButton = new Button("Logout");
+        logoutButton.setOnAction(e -> mainApp.showLoginPage());
+
+        // Arrange Buttons
+        HBox buttonsBox = new HBox(10, addToCartButton, buyNowButton, logoutButton);
+        buttonsBox.setAlignment(Pos.CENTER);
+
+        // Assemble Layout
+        layout.getChildren().addAll(
+                welcomeLabel,
+                filtersBox,
+                booksTable,
+                buttonsBox,
+                new Label("Your Cart:"),
+                cartListView
+        );
+
+        // Initial Filter
+        applyFilters("All Categories", "All Conditions");
+        categoryComboBox.setOnAction(e -> applyFilters(categoryComboBox.getValue(), conditionComboBox.getValue()));
+        conditionComboBox.setOnAction(e -> applyFilters(categoryComboBox.getValue(), conditionComboBox.getValue()));
+
+        return layout;
+    }
+
+    private void loadBooks() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 6) { // Expecting 6 fields
+                    String sellerID = parts[0];
+                    String title = parts[1];
+                    String category = parts[2];
+                    String condition = parts[3];
+                    double originalPrice = Double.parseDouble(parts[4]);
+                    double buyingPrice = Double.parseDouble(parts[5]);
+                    Book book = new Book(sellerID, title, category, condition, originalPrice, buyingPrice);
+                    allBooks.add(book);
+                } else {
+                    System.out.println("Invalid book listing format: " + line);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // File does not exist yet; it will be created when a seller lists a book
+            System.out.println("Book listings file not found. It will be created upon adding a new listing.");
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to load book listings.");
+            System.out.println("Error reading book listings: " + e.getMessage());
+        }
+    }
+
+    private void applyFilters(String category, String condition) {
+        filteredBooks.clear();
+
+        for (Book book : allBooks) {
+            boolean matchesCategory = category.equals("All Categories") || book.getCategory().equals(category);
+            boolean matchesCondition = condition.equals("All Conditions") || book.getCondition().equals(condition);
+
+            if (matchesCategory && matchesCondition) {
+                filteredBooks.add(book);
+            }
+        }
+    }
+
+
+    private void processPurchase(ObservableList<Book> purchasedBooks, String buyerID) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TRANSACTION_FILE, true))) {
+            for (Book book : purchasedBooks) {
+                String transaction = String.format("%s,%s,%.2f,%s,%s",
+                        book.getCategory(),
+                        buyerID,
+                        book.getBuyingPrice(),
+                        LocalDateTime.now().toString(),
+                        "Processed"); // Placeholder for Payment Details
+                writer.write(transaction);
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to record the transaction.");
+            System.out.println("Error writing to transaction file: " + e.getMessage());
+        }
+
+        // Now delete the purchased books from booklistings.txt
+        for (Book book : purchasedBooks) {
+            deleteBookListing(book);
+        }
+
+        // Remove from allBooks and filteredBooks
+        allBooks.removeAll(purchasedBooks);
+        filteredBooks.removeAll(purchasedBooks);
+    }
+
+    private void deleteBookListing(Book bookToDelete) {
+        List<Book> updatedListings = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 6) {
+                    String sellerID = parts[0];
+                    String title = parts[1];
+                    String category = parts[2];
+                    String condition = parts[3];
+                    double originalPrice = Double.parseDouble(parts[4]);
+                    double buyingPrice = Double.parseDouble(parts[5]);
+
+                    Book book = new Book(sellerID, title, category, condition, originalPrice, buyingPrice);
+                    if (!book.equals(bookToDelete)) {
+                        updatedListings.add(book);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to read book listings.");
+            System.out.println("Error reading book listings: " + e.getMessage());
+            return;
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOK_LISTINGS_FILE))) {
+            for (Book book : updatedListings) {
+                writer.write(book.getSellerID() + "," + book.getTitle() + "," + book.getCategory() + "," + book.getCondition() + ","
+                        + book.getOriginalPrice() + "," + book.getBuyingPrice());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to update book listings.");
+            System.out.println("Error updating book listings: " + e.getMessage());
+        }
+    }
+
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
+
+//Book.java:
+class Book {
+    private String sellerID;
+    private String title;
+    private String category;
+    private String condition;
+    private double originalPrice;
+    private double buyingPrice;
+
+    public Book(String sellerID, String title, String category, String condition, double originalPrice, double buyingPrice) {
+        this.sellerID = sellerID;
+        this.title = title;
+        this.category = category;
+        this.condition = condition;
+        this.originalPrice = originalPrice;
+        this.buyingPrice = buyingPrice;
+    }
+
+    // Getters
+    public String getSellerID() {
+        return sellerID;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public double getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public double getBuyingPrice() {
+        return buyingPrice;
+    }
+
+    // Setters (if needed)
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setBuyingPrice(double buyingPrice) {
+        this.buyingPrice = buyingPrice;
+    }
+
+    @Override
+    public String toString() {
+        return "Title: " + title + ", Category: " + category + ", Condition: " + condition + ", Price: $" + String.format("%.2f", buyingPrice);
+    }
+
+    // Override equals and hashCode for proper comparison (useful in deletion)
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Book)) return false;
+        Book other = (Book) obj;
+        return sellerID.equals(other.sellerID) &&
+               title.equals(other.title) &&
+               category.equals(other.category) &&
+               condition.equals(other.condition) &&
+               originalPrice == other.originalPrice &&
+               buyingPrice == other.buyingPrice;
+    }
+
+    @Override
+    public int hashCode() {
+        return sellerID.hashCode() + title.hashCode() + category.hashCode() + condition.hashCode()
+               + Double.hashCode(originalPrice) + Double.hashCode(buyingPrice);
+    }
+}
+
+//SellerView.java:
+class SellerView {
+
+    private Main mainApp;
+    private Stage primaryStage;
+    private static final String BOOK_LISTINGS_FILE = "booklistings.txt";
+
+    public SellerView(Main mainApp, Stage primaryStage) {
+        this.mainApp = mainApp;
+        this.primaryStage = primaryStage;
+    }
+
+    public VBox getSellerMenu(String sellerID) {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Seller Menu");
+
+        Button sellBookButton = new Button("Sell Book");
+        sellBookButton.setPrefWidth(300);
+        sellBookButton.setOnAction(e -> mainApp.showSellBookPage(sellerID));
+
+        Button manageListingsButton = new Button("Manage Active Listings");
+        manageListingsButton.setPrefWidth(300);
+        manageListingsButton.setOnAction(e -> mainApp.showManageListingsPage(sellerID));
+
+        Button viewSalesHistoryButton = new Button("View Sales History");
+        viewSalesHistoryButton.setPrefWidth(300);
+        viewSalesHistoryButton.setOnAction(e -> mainApp.showSalesHistoryPage(sellerID));
+
+        // Add logout button for main menu
+        Button logoutButton = new Button("Logout");
+        logoutButton.setPrefWidth(300);
+        logoutButton.setOnAction(e -> mainApp.showLoginPage());
+
+        layout.getChildren().addAll(
+                sellBookButton,
+                manageListingsButton,
+                viewSalesHistoryButton,
+                logoutButton
+        );
+
+        return layout;
+    }
+
+    public VBox getSellBookPage(String sellerID) {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Sell Book");
+
+        Label titleLabel = new Label("Book Title:");
+        TextField titleField = new TextField();
+        titleField.setPromptText("Enter the book title");
+
+        Label categoryLabel = new Label("Book Category:");
+        ComboBox<String> categoryComboBox = new ComboBox<>();
+        categoryComboBox.getItems().addAll(
+                "Natural Science Books",
+                "Computer Books",
+                "Math Books",
+                "English Language Books",
+                "Other Books (e.g., Novels, Sci-Fi, Arts)"
+        );
+
+        Label conditionLabel = new Label("Book Condition:");
+        ComboBox<String> conditionComboBox = new ComboBox<>();
+        conditionComboBox.getItems().addAll(
+                "Used Like New",
+                "Moderately Used",
+                "Heavily Used"
+        );
+
+        Label priceLabel = new Label("Original Price in dollars($)");
+        TextField priceField = new TextField();
+        priceField.setPromptText("Enter the original price");
+
+        Label generatedPriceLabel = new Label("Suggested Buying Price: Not Generated");
+
+        Button generatePriceButton = new Button("Generate Suggested Price");
+        Button submitButton = new Button("List My Book at $0.00");
+        submitButton.setDisable(true);
+
+        generatePriceButton.setOnAction(e -> {
+            String title = titleField.getText().trim();
+            String category = categoryComboBox.getValue();
+            String condition = conditionComboBox.getValue();
+            String priceText = priceField.getText().trim();
+
+            if (!title.isEmpty() && category != null && condition != null && !priceText.isEmpty()) {
+                try {
+                    double originalPrice = Double.parseDouble(priceText);
+                    double buyingPrice = generateBuyingPrice(condition, originalPrice);
+                    generatedPriceLabel.setText("Suggested Buying Price: $" + String.format("%.2f", buyingPrice));
+                    submitButton.setText("List My Book at $" + String.format("%.2f", buyingPrice));
+                    submitButton.setDisable(false);
+                } catch (NumberFormatException ex) {
+                    generatedPriceLabel.setText("Please enter a valid number for the price.");
+                    submitButton.setDisable(true);
+                }
+            } else {
+                generatedPriceLabel.setText("Please fill in all fields to generate a price.");
+                submitButton.setDisable(true);
+            }
+        });
+
+        submitButton.setOnAction(e -> {
+            String title = titleField.getText().trim();
+            String category = categoryComboBox.getValue();
+            String condition = conditionComboBox.getValue();
+            String priceText = priceField.getText().trim();
+
+            if (!title.isEmpty() && category != null && condition != null && !priceText.isEmpty()) {
+                try {
+                    double originalPrice = Double.parseDouble(priceText);
+                    double buyingPrice = generateBuyingPrice(condition, originalPrice);
+                    Book newBook = new Book(sellerID, title, category, condition, originalPrice, buyingPrice);
+                    saveBookListing(newBook);
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Your book has been listed successfully!");
+                    mainApp.showSellerMenu(sellerID);
+                } catch (NumberFormatException ex) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid number for the price.");
+                }
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Incomplete Data", "Please fill in all fields.");
+            }
+        });
+
+        // Add navigation buttons
+        HBox navigationBox = mainApp.createNavigationButtons("sellBook", sellerID);
+
+        layout.getChildren().addAll(
+                titleLabel, titleField,
+                categoryLabel, categoryComboBox,
+                conditionLabel, conditionComboBox,
+                priceLabel, priceField,
+                generatePriceButton,
+                generatedPriceLabel,
+                submitButton,
+                navigationBox
+        );
+
+        return layout;
+    }
+
+    public VBox getManageListingsPage(String sellerID) {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Manage Listings");
+
+        List<Book> listings = getBookListingsBySeller(sellerID);
+
+        VBox contentBox = new VBox(10);
+        contentBox.setAlignment(Pos.CENTER);
+
+        if (listings.isEmpty()) {
+            Label noListingsLabel = new Label("You have no active listings.");
+            contentBox.getChildren().add(noListingsLabel);
+        } else {
+            GridPane listingsGrid = new GridPane();
+            listingsGrid.setPadding(new Insets(10));
+            listingsGrid.setHgap(10);
+            listingsGrid.setVgap(10);
+            listingsGrid.setAlignment(Pos.CENTER);
+
+            CheckBox[] checkBoxes = new CheckBox[listings.size()];
+            for (int i = 0; i < listings.size(); i++) {
+                Book book = listings.get(i);
+                String listingInfo = "Title: " + book.getTitle() + ", Category: " + book.getCategory() + ", Condition: " + book.getCondition()
+                        + ", Price: $" + String.format("%.2f", book.getBuyingPrice());
+                checkBoxes[i] = new CheckBox(listingInfo);
+                listingsGrid.add(checkBoxes[i], 0, i);
+            }
+
+            Button deleteButton = new Button("Delete Selected Listings");
+            deleteButton.setOnAction(e -> {
+                boolean anySelected = false;
+                for (int i = 0; i < checkBoxes.length; i++) {
+                    if (checkBoxes[i].isSelected()) {
+                        deleteBookListing(listings.get(i));
+                        anySelected = true;
+                    }
+                }
+                if (anySelected) {
+                    showAlert(Alert.AlertType.INFORMATION, "Deleted", "Selected listings have been deleted.");
+                } else {
+                    showAlert(Alert.AlertType.WARNING, "No Selection", "Please select at least one listing to delete.");
+                }
+                mainApp.showManageListingsPage(sellerID);
+            });
+
+            contentBox.getChildren().addAll(listingsGrid, deleteButton);
+        }
+
+        // Add navigation buttons
+        HBox navigationBox = mainApp.createNavigationButtons("manageListings", sellerID);
+
+        layout.getChildren().addAll(contentBox, navigationBox);
+
+        return layout;
+    }
+
+    public VBox getSalesHistoryPage(String sellerID) {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.CENTER);
+        layout.setStyle("-fx-background-color: #F7B05B;");
+
+        primaryStage.setTitle("Sun Devil Bookstore - Sales History");
+
+        Label underConstructionLabel = new Label("Sales History Page - Under Construction");
+
+        // Add navigation buttons
+        HBox navigationBox = mainApp.createNavigationButtons("salesHistory", sellerID);
+
+        layout.getChildren().addAll(underConstructionLabel, navigationBox);
+
+        return layout;
+    }
+
+    private void saveBookListing(Book book) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOK_LISTINGS_FILE, true))) {
+            writer.write(book.getSellerID() + "," + book.getTitle() + "," + book.getCategory() + "," + book.getCondition() + ","
+                    + book.getOriginalPrice() + "," + book.getBuyingPrice());
+            writer.newLine();
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to save the book listing.");
+            System.out.println("Error saving book listing: " + e.getMessage());
+        }
+    }
+
+    private List<Book> getBookListingsBySeller(String sellerID) {
+        List<Book> listings = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 6 && parts[0].equals(sellerID)) { // Updated to 6 parts
+                    String title = parts[1];
+                    String category = parts[2];
+                    String condition = parts[3];
+                    double originalPrice = Double.parseDouble(parts[4]);
+                    double buyingPrice = Double.parseDouble(parts[5]);
+                    Book book = new Book(sellerID, title, category, condition, originalPrice, buyingPrice);
+                    listings.add(book);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // File does not exist yet; return empty list
+            System.out.println("Book listings file not found. It will be created upon adding a new listing.");
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to read book listings.");
+            System.out.println("Error reading book listings: " + e.getMessage());
+        }
+        return listings;
+    }
+
+    private void deleteBookListing(Book bookToDelete) {
+        List<Book> updatedListings = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 6) {
+                    String sellerID = parts[0];
+                    String title = parts[1];
+                    String category = parts[2];
+                    String condition = parts[3];
+                    double originalPrice = Double.parseDouble(parts[4]);
+                    double buyingPrice = Double.parseDouble(parts[5]);
+
+                    Book book = new Book(sellerID, title, category, condition, originalPrice, buyingPrice);
+                    if (!book.equals(bookToDelete)) {
+                        updatedListings.add(book);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to read book listings.");
+            System.out.println("Error reading book listings: " + e.getMessage());
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOK_LISTINGS_FILE))) {
+            for (Book book : updatedListings) {
+                writer.write(book.getSellerID() + "," + book.getTitle() + "," + book.getCategory() + "," + book.getCondition() + ","
+                        + book.getOriginalPrice() + "," + book.getBuyingPrice());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to update book listings.");
+            System.out.println("Error updating book listings: " + e.getMessage());
+        }
+    }
+
+    private double generateBuyingPrice(String condition, double originalPrice) {
+        double conditionFactor;
+        switch (condition) {
+            case "Used Like New":
+                conditionFactor = 0.8;
+                break;
+            case "Moderately Used":
+                conditionFactor = 0.6;
+                break;
+            case "Heavily Used":
+                conditionFactor = 0.4;
+                break;
+            default:
+                conditionFactor = 0.5;
+                break;
+        }
+        return originalPrice * conditionFactor;
+    }
+
+
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
