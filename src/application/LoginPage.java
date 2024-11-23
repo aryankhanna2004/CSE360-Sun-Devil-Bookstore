@@ -35,7 +35,8 @@ public class LoginPage {
         // Logo
         ImageView logoImageView = new ImageView();
         try {
-            String imagePath = "file:/Users/abc/eclipse-workspace-2/javafxproject/src/application/bookstore_logo.png";
+//            String imagePath = "file:/Users/abc/eclipse-workspace-2/javafxproject/src/application/bookstore_logo.png";
+        	String imagePath = "file:bookstore_logo.png";
             Image logoImage = new Image(imagePath);
             logoImageView.setImage(logoImage);
             logoImageView.setFitWidth(200);
@@ -85,6 +86,7 @@ public class LoginPage {
 
         Button loginButton = new Button("Log in");
         loginButton.setPrefWidth(300);
+     
         loginButton.setOnAction(e -> {
             String email = emailField.getText();
             String password = passwordField.isVisible() ? passwordField.getText() : passwordFieldVisible.getText();
@@ -96,6 +98,8 @@ public class LoginPage {
                     mainApp.showSellerMenu(email);
                 } else if ("buyer".equalsIgnoreCase(role)) {
                     mainApp.showBuyerMenu(email);
+                } else if ("admin".equalsIgnoreCase(role)) {
+                    mainApp.showAdminView();
                 } else {
                     errorMessage.setText("Unknown user role.");
                     errorMessage.setFill(Color.RED);
@@ -105,6 +109,7 @@ public class LoginPage {
                 errorMessage.setFill(Color.RED);
             }
         });
+
 
         Label forgotPasswordLabel = new Label("Forgot password?");
         forgotPasswordLabel.setStyle("-fx-underline: true; -fx-text-fill: blue;");
@@ -162,7 +167,7 @@ public class LoginPage {
                 System.out.println("User registered successfully as " + role + "!");
                 mainApp.showLoginPage();
             } else {
-                // Handle user registration failure (e.g., email already exists)
+             
                 System.out.println("User registration failed.");
             }
         });
@@ -182,7 +187,14 @@ public class LoginPage {
     }
 
 
+ 
     private String authenticateUser(String email, String password) {
+        // Check if admin
+        if ("admin".equals(email) && "password".equals(password)) {
+            return "admin";
+        }
+
+        // Existing user authentication
         try (BufferedReader reader = new BufferedReader(new FileReader(DATA_FILE))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -197,6 +209,7 @@ public class LoginPage {
         }
         return null;
     }
+
 
     
     private boolean saveUserData(String email, String password, String role) {

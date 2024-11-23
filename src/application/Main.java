@@ -56,6 +56,16 @@ public class Main extends Application {
         mainLayout.getChildren().clear();
         mainLayout.getChildren().add(sellerMenuLayout);
     }
+    public void showAdminView() {
+        AdminView adminView = new AdminView(this, primaryStage);
+        Scene adminScene = new Scene(adminView.getAdminView(), 800, 600);
+        primaryStage.setScene(adminScene);
+    }
+    public void showLoginPage1() {
+        LoginPage loginPage = new LoginPage(this, primaryStage);
+        Scene loginScene = new Scene(loginPage.getLoginPage(), 800, 600);
+        primaryStage.setScene(loginScene);
+    }
 
     public void showSellBookPage(String sellerID) {
         VBox sellBookLayout = sellerView.getSellBookPage(sellerID);

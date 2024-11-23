@@ -230,9 +230,10 @@ public class BuyerView {
     private void processPurchase(ObservableList<Book> purchasedBooks, String buyerID) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(TRANSACTION_FILE, true))) {
             for (Book book : purchasedBooks) {
-                String transaction = String.format("%s,%s,%.2f,%s,%s",
+                String transaction = String.format("%s,%s,%s,%.2f,%s,%s",
                         book.getCategory(),
                         buyerID,
+                        book.getSellerID(),
                         book.getBuyingPrice(),
                         LocalDateTime.now().toString(),
                         "Processed"); // Placeholder for Payment Details
@@ -253,6 +254,7 @@ public class BuyerView {
         allBooks.removeAll(purchasedBooks);
         filteredBooks.removeAll(purchasedBooks);
     }
+
 
     private void deleteBookListing(Book bookToDelete) {
         List<Book> updatedListings = new ArrayList<>();

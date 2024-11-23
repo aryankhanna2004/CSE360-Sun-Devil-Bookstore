@@ -5,6 +5,10 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.property.SimpleStringProperty;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -15,12 +19,14 @@ public class SellerView {
     private Main mainApp;
     private Stage primaryStage;
     private static final String BOOK_LISTINGS_FILE = "booklistings.txt";
+    private static final String TRANSACTIONS_FILE = "transactions.txt";
 
     public SellerView(Main mainApp, Stage primaryStage) {
         this.mainApp = mainApp;
         this.primaryStage = primaryStage;
     }
 
+    
     public VBox getSellerMenu(String sellerID) {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(20));
@@ -28,6 +34,9 @@ public class SellerView {
         layout.setStyle("-fx-background-color: #F7B05B;");
 
         primaryStage.setTitle("Sun Devil Bookstore - Seller Menu");
+
+        Label welcomeLabel = new Label("Welcome, " + sellerID + "!");
+        welcomeLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Button sellBookButton = new Button("Sell Book");
         sellBookButton.setPrefWidth(300);
@@ -47,6 +56,7 @@ public class SellerView {
         logoutButton.setOnAction(e -> mainApp.showLoginPage());
 
         layout.getChildren().addAll(
+                welcomeLabel,
                 sellBookButton,
                 manageListingsButton,
                 viewSalesHistoryButton,
@@ -56,6 +66,7 @@ public class SellerView {
         return layout;
     }
 
+    
     public VBox getSellBookPage(String sellerID) {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(20));
@@ -142,7 +153,7 @@ public class SellerView {
         });
 
         // Add navigation buttons
-        HBox navigationBox = mainApp.createNavigationButtons("sellBook", sellerID);
+        HBox navigationBox = createNavigationButtons("sellBook", sellerID);
 
         layout.getChildren().addAll(
                 titleLabel, titleField,
@@ -158,6 +169,7 @@ public class SellerView {
         return layout;
     }
 
+    
     public VBox getManageListingsPage(String sellerID) {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(20));
@@ -211,31 +223,93 @@ public class SellerView {
         }
 
         // Add navigation buttons
-        HBox navigationBox = mainApp.createNavigationButtons("manageListings", sellerID);
+        HBox navigationBox = createNavigationButtons("manageListings", sellerID);
 
         layout.getChildren().addAll(contentBox, navigationBox);
 
         return layout;
     }
 
+    
     public VBox getSalesHistoryPage(String sellerID) {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(20));
-        layout.setAlignment(Pos.CENTER);
+        layout.setAlignment(Pos.TOP_CENTER);
         layout.setStyle("-fx-background-color: #F7B05B;");
 
         primaryStage.setTitle("Sun Devil Bookstore - Sales History");
 
-        Label underConstructionLabel = new Label("Sales History Page - Under Construction");
+        Label titleLabel = new Label("Sales History");
+        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+
+        // Create TableView
+        TableView<ObservableList<String>> tableView = new TableView<>();
+        tableView.setPrefWidth(700);
+        tableView.setPrefHeight(400);
+
+        // Define columns
+        TableColumn<ObservableList<String>, String> categoryCol = new TableColumn<>("Category");
+        categoryCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(0)));
+        categoryCol.setPrefWidth(150);
+
+        TableColumn<ObservableList<String>, String> buyerIDCol = new TableColumn<>("Buyer ID");
+        buyerIDCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(1)));
+        buyerIDCol.setPrefWidth(100);
+
+        TableColumn<ObservableList<String>, String> amountCol = new TableColumn<>("Amount ($)");
+        amountCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(3)));
+        amountCol.setPrefWidth(100);
+
+        TableColumn<ObservableList<String>, String> timestampCol = new TableColumn<>("Timestamp");
+        timestampCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(4)));
+        timestampCol.setPrefWidth(200);
+
+        TableColumn<ObservableList<String>, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().get(5)));
+        statusCol.setPrefWidth(150);
+
+        tableView.getColumns().addAll(categoryCol, buyerIDCol, amountCol, timestampCol, statusCol);
+
+        // Load transactions and populate the table
+        ObservableList<ObservableList<String>> transactions = FXCollections.observableArrayList(getSalesHistory1(sellerID));
+        tableView.setItems(transactions);
+
+        if (transactions.isEmpty()) {
+            Label noSalesLabel = new Label("You have no sales history.");
+            layout.getChildren().addAll(titleLabel, noSalesLabel);
+        } else {
+            layout.getChildren().addAll(titleLabel, tableView);
+        }
 
         // Add navigation buttons
-        HBox navigationBox = mainApp.createNavigationButtons("salesHistory", sellerID);
-
-        layout.getChildren().addAll(underConstructionLabel, navigationBox);
+        HBox navigationBox = createNavigationButtons("salesHistory", sellerID);
+        layout.getChildren().add(navigationBox);
 
         return layout;
     }
 
+    public ObservableList<ObservableList<String>> getSalesHistory1(String sellerID) {
+        ObservableList<ObservableList<String>> transactions = FXCollections.observableArrayList();
+
+        try (BufferedReader br = new BufferedReader(new FileReader("transactions.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] fields = line.split(",");
+                if (fields.length == 6 && fields[2].equals(sellerID)) {
+                    ObservableList<String> transaction = FXCollections.observableArrayList(fields);
+                    transactions.add(transaction);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return transactions;
+    }
+
+
+
+    
     private void saveBookListing(Book book) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOK_LISTINGS_FILE, true))) {
             writer.write(book.getSellerID() + "," + book.getTitle() + "," + book.getCategory() + "," + book.getCondition() + ","
@@ -247,13 +321,21 @@ public class SellerView {
         }
     }
 
+    
     private List<Book> getBookListingsBySeller(String sellerID) {
         List<Book> listings = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+        File file = new File(BOOK_LISTINGS_FILE);
+
+        if (!file.exists()) {
+            System.out.println("Book listings file not found. It will be created upon adding a new listing.");
+            return listings;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length == 6 && parts[0].equals(sellerID)) { // Updated to 6 parts
+                if (parts.length == 6 && parts[0].equals(sellerID)) {
                     String title = parts[1];
                     String category = parts[2];
                     String condition = parts[3];
@@ -270,12 +352,21 @@ public class SellerView {
             showAlert(Alert.AlertType.ERROR, "Error", "Failed to read book listings.");
             System.out.println("Error reading book listings: " + e.getMessage());
         }
+
         return listings;
     }
 
+    
     private void deleteBookListing(Book bookToDelete) {
         List<Book> updatedListings = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(BOOK_LISTINGS_FILE))) {
+        File file = new File(BOOK_LISTINGS_FILE);
+
+        if (!file.exists()) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Book listings file does not exist.");
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
@@ -296,6 +387,7 @@ public class SellerView {
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Error", "Failed to read book listings.");
             System.out.println("Error reading book listings: " + e.getMessage());
+            return;
         }
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(BOOK_LISTINGS_FILE))) {
@@ -310,6 +402,7 @@ public class SellerView {
         }
     }
 
+    
     private double generateBuyingPrice(String condition, double originalPrice) {
         double conditionFactor;
         switch (condition) {
@@ -329,12 +422,77 @@ public class SellerView {
         return originalPrice * conditionFactor;
     }
 
-
+    
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    
+    public HBox createNavigationButtons(String currentPage, String sellerID) {
+        HBox navigationBox = new HBox(10);
+        navigationBox.setAlignment(Pos.CENTER);
+
+        // Back to Menu Button
+        Button backButton = new Button("Back to Menu");
+        backButton.setOnAction(e -> {
+            mainApp.showSellerMenu(sellerID);
+        });
+
+        // Logout Button
+        Button logoutButton = new Button("Logout");
+        logoutButton.setOnAction(e -> {
+            mainApp.showLoginPage();
+        });
+
+        navigationBox.getChildren().addAll(backButton, logoutButton);
+        return navigationBox;
+    }
+
+    
+    private List<ObservableList<String>> getSalesHistory(String sellerID) {
+        List<ObservableList<String>> salesHistory = new ArrayList<>();
+        File file = new File(TRANSACTIONS_FILE);
+
+        if (!file.exists()) {
+            System.out.println("Transactions file not found.");
+            return salesHistory;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Assuming the format: Category,UserID,Amount,Timestamp,Status
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String category = parts[0].trim();
+                    String userID = parts[1].trim();
+                    String amount = parts[2].trim();
+                    String timestamp = parts[3].trim();
+                    String status = parts[4].trim();
+
+                    if (userID.equals(sellerID)) {
+                        ObservableList<String> transaction = FXCollections.observableArrayList();
+                        transaction.add(category);
+                        transaction.add(userID);
+                        transaction.add(amount);
+                        transaction.add(timestamp);
+                        transaction.add(status);
+                        salesHistory.add(transaction);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to read transactions.");
+            System.out.println("Error reading transactions: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            showAlert(Alert.AlertType.ERROR, "Error", "Invalid number format in transactions.");
+            System.out.println("Number format error: " + e.getMessage());
+        }
+
+        return salesHistory;
     }
 }
