@@ -35,7 +35,8 @@ public class LoginPage {
         // Logo
         ImageView logoImageView = new ImageView();
         try {
-            String imagePath = "file:/Users/abc/eclipse-workspace-2/javafxproject/src/application/bookstore_logo.png";
+            //String imagePath = "file:/Users/abc/eclipse-workspace-2/javafxproject/src/application/bookstore_logo.png";
+            String imagePath = "file:bookstore.png";
             Image logoImage = new Image(imagePath);
             logoImageView.setImage(logoImage);
             logoImageView.setFitWidth(200);
